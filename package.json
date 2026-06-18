@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node dist/app.js",
     "register": "node dist/commands.js",
-    "dev": "tsx watch app.ts",
+    "dev": "tsx watch src/app.ts",
     "build": "tsc",
     "prestart": "npm run build"
   },
