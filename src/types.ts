@@ -30,3 +30,22 @@ export interface LeaderboardResponse {
   isEvent: boolean;
   compressedItems: null;
 }
+
+export interface MatchListResponse {
+  matchList: {
+    gameId: string | null;
+    matchId: string;
+    profileId: number;
+    userName: string | null;
+    avatarUrl: string | null;
+    dateTime: string;
+    matchLength: number;
+    playerCount: number;
+    victoryResultID: number;
+    mapType: string;
+    civilizationID: number;
+    civilization: string;
+    winLoss: "Win" | "Loss";
+  }[];
+  totalMatches: number;
+}

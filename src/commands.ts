@@ -31,4 +31,20 @@ const PLAYER_COMMAND: Command = {
   contexts: [0, 1, 2],
 };
 
-InstallGlobalCommands(process.env.APP_ID!, [PLAYER_COMMAND]);
+const LASTMATCH_COMMAND: Command = {
+  name: "lastmatch",
+  description: "Display the latest played match for a player",
+  options: [
+    {
+      type: 3,
+      name: "player",
+      description: "The player username to look up",
+      required: true,
+    },
+  ],
+  type: 1,
+  integration_types: [0, 1],
+  contexts: [0, 1, 2],
+};
+
+InstallGlobalCommands(process.env.APP_ID!, [PLAYER_COMMAND, LASTMATCH_COMMAND]);

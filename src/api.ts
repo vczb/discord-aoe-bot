@@ -1,4 +1,4 @@
-import { LeaderboardResponse } from "./types.js";
+import { LeaderboardResponse, MatchListResponse } from "./types.js";
 
 export async function getPlayer(
   username: string,
@@ -28,4 +28,38 @@ export async function getPlayer(
   }
 
   return response.json();
+}
+
+export async function getMatches(
+  profileId: number,
+  count = 10,
+): Promise<MatchListResponse> {
+  const response = await fetch(
+    "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchList",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        gamertag: "unknown user",
+        playerNumber: 0,
+        game: "age2",
+        profileId,
+        sortColumn: "dateTime",
+        sortDirection: "DESC",
+        page: 1,
+        recordCount: count,
+        matchType: "3",
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch matches: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  return response.json() as Promise<MatchListResponse>;
 }

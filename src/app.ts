@@ -5,7 +5,7 @@ import {
   InteractionResponseType,
   verifyKeyMiddleware,
 } from "discord-interactions";
-import { getPlayer } from "./api.js";
+import { getPlayer, getMatches } from "./api.js";
 
 interface InteractionData {
   name?: string;
@@ -65,6 +65,101 @@ app.post(
           return res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: { content: "Error looking up player. Try again later." },
+          });
+        }
+      }
+
+      if (data.name === "lastmatch") {
+        const playerName = data.options?.[0]?.value;
+
+        if (!playerName) {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: "Please provide a player name." },
+          });
+        }
+
+        try {
+          const playerResult = await getPlayer(playerName);
+
+          if (!playerResult.items?.length) {
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: { content: `No player found for **${playerName}**` },
+            });
+          }
+
+          const player = playerResult.items[0];
+          const matches = await getMatches(player.rlUserId, 1);
+
+          if (!matches.matchList?.length) {
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: {
+                content: `No matches found for **${player.userName}**`,
+              },
+            });
+          }
+
+          const match = matches.matchList[0];
+          const isWin = match.winLoss === "Win";
+          const lengthMinutes = Math.floor(match.matchLength / 60);
+          const lengthSeconds = match.matchLength % 60;
+          const matchDate = new Date(match.dateTime).toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            },
+          );
+
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              embeds: [
+                {
+                  title: `Latest Match — ${player.userName}`,
+                  color: isWin ? 0x57f287 : 0xed4245,
+                  thumbnail: { url: player.avatarUrl },
+                  fields: [
+                    {
+                      name: "Result",
+                      value: match.winLoss,
+                      inline: true,
+                    },
+                    {
+                      name: "Civilization",
+                      value: match.civilization,
+                      inline: true,
+                    },
+                    { name: "Map", value: match.mapType, inline: true },
+                    {
+                      name: "Match Length",
+                      value: `${lengthMinutes}:${lengthSeconds.toString().padStart(2, "0")}`,
+                      inline: true,
+                    },
+                    {
+                      name: "Players",
+                      value: String(match.playerCount),
+                      inline: true,
+                    },
+                    { name: "Date", value: matchDate, inline: true },
+                  ],
+                  footer: {
+                    text: `Match ID: ${match.matchId}`,
+                  },
+                },
+              ],
+            },
+          });
+        } catch (err) {
+          console.error(err);
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: {
+              content: "Error fetching last match. Try again later.",
+            },
           });
         }
       }
