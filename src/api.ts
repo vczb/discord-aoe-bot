@@ -1,8 +1,12 @@
 import { LeaderboardResponse, MatchListResponse } from "./types.js";
+import { get, set } from "./cache.js";
 
 export async function getPlayer(
   username: string,
 ): Promise<LeaderboardResponse> {
+  const cached = get<LeaderboardResponse>(`player:${username}`);
+  if (cached) return cached;
+
   const response = await fetch(
     "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
     {
@@ -27,13 +31,19 @@ export async function getPlayer(
     throw new Error(`HTTP ${response.status}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  set(`player:${username}`, data);
+  return data;
 }
 
 export async function getMatches(
   profileId: number,
   count = 10,
 ): Promise<MatchListResponse> {
+  const key = `matches:${profileId}:${count}`;
+  const cached = get<MatchListResponse>(key);
+  if (cached) return cached;
+
   const response = await fetch(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchList",
     {
@@ -61,5 +71,7 @@ export async function getMatches(
     );
   }
 
-  return response.json() as Promise<MatchListResponse>;
+  const data = (await response.json()) as MatchListResponse;
+  set(key, data);
+  return data;
 }
