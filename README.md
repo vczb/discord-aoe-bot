@@ -30,18 +30,3 @@ https://www.aoe2insights.com/user/12182910/civ-stats/
 https://www.aoe2insights.com/user/12182910/elo-history/3/
 
 ---
-
-```
-curl -X POST 'https://api.ageofempires.com/api/v2/ageii/Leaderboard' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "region": 7,
-    "matchType": 3,
-    "consoleMatchType": 15,
-    "searchPlayer": "",
-    "page": 1,
-    "count": 100,
-    "sortColumn": "rank",
-    "sortDirection": "ASC"
-  }'
-```

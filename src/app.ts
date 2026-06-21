@@ -5,7 +5,7 @@ import {
   InteractionResponseType,
   verifyKeyMiddleware,
 } from "discord-interactions";
-import { getPlayer, getMatches, getTopPlayers } from "./api.js";
+import { getPlayer, getMatches, getMatchDetail, getTopPlayers, getFullStats } from "./api.js";
 
 interface InteractionData {
   name?: string;
@@ -102,6 +102,53 @@ app.post(
         }
       }
 
+      if (data.name === "stats") {
+        const username = data.options?.[0]?.value;
+
+        if (!username) {
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: "Please provide a username." },
+          });
+        }
+
+        try {
+          const playerResult = await getPlayer(username);
+
+          if (!playerResult.items?.length) {
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: { content: `No player found for **${username}**` },
+            });
+          }
+
+          const player = playerResult.items[0];
+          const stats = await getFullStats(player.rlUserId);
+          const cs = stats.careerStats;
+          const mp = stats.mpStatList;
+
+          const content =
+            `**${player.userName}** — Career Stats\n\n` +
+            `**Multiplayer** — ${mp.totalMatches} matches, ${mp.totalWins} wins (current streak: ${mp.currentWinStreak})\n\n` +
+            `**Units** — ${cs.unitsKilled.toLocaleString()} killed / ${cs.unitsLost.toLocaleString()} lost\n` +
+            `**Buildings** — ${cs.buildingsRaised.toLocaleString()} raised / ${cs.buildingsLost.toLocaleString()} lost\n` +
+            `**Castles Built:** ${cs.castlesBuilt} | **Wonders Built:** ${cs.wondersBuilt}\n` +
+            `**Farms Built:** ${cs.farmsBuilt.toLocaleString()} | **Trebs Built:** ${cs.trebsBuilt}\n` +
+            `**High Scores** — Total: ${cs.highScoreTotal.toLocaleString()} | Military: ${cs.highScoreMilitary.toLocaleString()} | Economy: ${cs.highScoreEconomy.toLocaleString()} | Tech: ${cs.highScoreTechnology.toLocaleString()}`;
+
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content },
+          });
+        } catch (err) {
+          console.error(err);
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: "Error fetching stats. Try again later." },
+          });
+        }
+      }
+
       if (data.name === "lastmatch") {
         const playerName = data.options?.[0]?.value;
 
@@ -135,10 +182,12 @@ app.post(
           }
 
           const match = matches.matchList[0];
-          const isWin = match.winLoss === "Win";
-          const lengthMinutes = Math.floor(match.matchLength / 60);
-          const lengthSeconds = match.matchLength % 60;
-          const matchDate = new Date(match.dateTime).toLocaleDateString(
+          const detail = await getMatchDetail(match.matchId);
+          const ms = detail.matchSummary;
+          const isWin = ms.winLoss === "Win";
+          const lengthMinutes = Math.floor(ms.matchLength / 60);
+          const lengthSeconds = ms.matchLength % 60;
+          const matchDate = new Date(ms.dateTime).toLocaleDateString(
             "en-US",
             {
               year: "numeric",
@@ -146,6 +195,17 @@ app.post(
               day: "numeric",
             },
           );
+
+          const teams = new Map<number, string[]>();
+          for (const p of detail.playerList) {
+            const entry = teams.get(p.team) || [];
+            entry.push(`${p.userName} (${p.civName}, ${p.elo ?? "?"} ELO)`);
+            teams.set(p.team, entry);
+          }
+          const playersField = [...teams.entries()]
+            .sort(([a], [b]) => a - b)
+            .map(([team, members]) => `**Team ${team}**\n${members.join("\n")}`)
+            .join("\n\n");
 
           return res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -158,26 +218,31 @@ app.post(
                   fields: [
                     {
                       name: "Result",
-                      value: match.winLoss,
+                      value: ms.winLoss ?? match.winLoss,
                       inline: true,
                     },
-                    {
-                      name: "Civilization",
-                      value: match.civilization,
-                      inline: true,
-                    },
-                    { name: "Map", value: match.mapType, inline: true },
                     {
                       name: "Match Length",
                       value: `${lengthMinutes}:${lengthSeconds.toString().padStart(2, "0")}`,
                       inline: true,
                     },
                     {
+                      name: "Civilization",
+                      value: ms.civilization ?? match.civilization,
+                      inline: true,
+                    },
+                    { name: "Map", value: ms.mapType, inline: true },
+                    {
                       name: "Players",
-                      value: String(match.playerCount),
+                      value: String(ms.playerCount),
                       inline: true,
                     },
                     { name: "Date", value: matchDate, inline: true },
+                    {
+                      name: "Players Detail",
+                      value: playersField,
+                      inline: false,
+                    },
                   ],
                   footer: {
                     text: `Match ID: ${match.matchId}`,
