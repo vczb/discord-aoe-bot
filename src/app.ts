@@ -5,7 +5,7 @@ import {
   InteractionResponseType,
   verifyKeyMiddleware,
 } from "discord-interactions";
-import { getPlayer, getMatches } from "./api.js";
+import { getPlayer, getMatches, getTopPlayers } from "./api.js";
 
 interface InteractionData {
   name?: string;
@@ -65,6 +65,39 @@ app.post(
           return res.send({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: { content: "Error looking up player. Try again later." },
+          });
+        }
+      }
+
+      if (data.name === "top10") {
+        try {
+          const result = await getTopPlayers();
+
+          if (!result.items?.length) {
+            return res.send({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: { content: "No players found" },
+            });
+          }
+
+          const content =
+            "**Top 10 Players**\n\n" +
+            result.items
+              .map(
+                (player) =>
+                  `#${player.rank} **${player.userName}** — ${player.elo} ELO (${player.wins}-${player.losses})`,
+              )
+              .join("\n");
+
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content },
+          });
+        } catch (err) {
+          console.error(err);
+          return res.send({
+            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            data: { content: "Error fetching top players. Try again later." },
           });
         }
       }

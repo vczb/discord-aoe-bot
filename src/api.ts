@@ -20,7 +20,7 @@ export async function getPlayer(
         // consoleMatchType: 15,
         searchPlayer: username,
         page: 1,
-        count: 100,
+        count: 1,
         sortColumn: "rank",
         sortDirection: "ASC",
       }),
@@ -31,8 +31,40 @@ export async function getPlayer(
     throw new Error(`HTTP ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as LeaderboardResponse;
   set(`player:${username}`, data);
+  return data;
+}
+
+export async function getTopPlayers(): Promise<LeaderboardResponse> {
+  const cached = get<LeaderboardResponse>(`topPlayers`);
+  if (cached) return cached;
+
+  const response = await fetch(
+    "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        region: "7",
+        matchType: "3",
+        searchPlayer: "",
+        page: 1,
+        count: 10,
+        sortColumn: "rank",
+        sortDirection: "ASC",
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data = (await response.json()) as LeaderboardResponse;
+  set(`topPlayers`, data);
   return data;
 }
 

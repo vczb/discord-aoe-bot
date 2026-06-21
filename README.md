@@ -15,6 +15,10 @@
 
 - [ ] Add Real-time Pro-Player / Streamer status alerts
 
+## age website
+
+https://www.ageofempires.com/stats/ageiide
+
 ## oficial API
 
 https://api.ageofempires.com/api/v2/ageii/Leaderboard
@@ -28,18 +32,16 @@ https://www.aoe2insights.com/user/12182910/elo-history/3/
 ---
 
 ```
-curl -X POST 'https://api.ageofempires.com/api/GameStats/AgeII/GetMatchList' \
+curl -X POST 'https://api.ageofempires.com/api/v2/ageii/Leaderboard' \
   -H 'Content-Type: application/json' \
   -d '{
-    "gamertag": "unknown user",
-    "playerNumber": 0,
-    "game": "age2",
-    "profileId": 14714809,
-    "sortColumn": "dateTime",
-    "sortDirection": "DESC",
+    "region": 7,
+    "matchType": 3,
+    "consoleMatchType": 15,
+    "searchPlayer": "",
     "page": 1,
-    "recordCount": 10,
-    "matchType": "3"
+    "count": 100,
+    "sortColumn": "rank",
+    "sortDirection": "ASC"
   }'
-
 ```

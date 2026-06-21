@@ -47,4 +47,16 @@ const LASTMATCH_COMMAND: Command = {
   contexts: [0, 1, 2],
 };
 
-InstallGlobalCommands(process.env.APP_ID!, [PLAYER_COMMAND, LASTMATCH_COMMAND]);
+const TOP10_COMMAND: Command = {
+  name: "top10",
+  description: "Display the top 10 players on the leaderboard",
+  type: 1,
+  integration_types: [0, 1],
+  contexts: [0, 1, 2],
+};
+
+InstallGlobalCommands(process.env.APP_ID!, [
+  PLAYER_COMMAND,
+  LASTMATCH_COMMAND,
+  TOP10_COMMAND,
+]);
