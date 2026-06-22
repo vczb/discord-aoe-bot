@@ -1,10 +1,11 @@
-import {
+import type {
   FullStatsResponse,
   LeaderboardResponse,
   MatchListResponse,
   MatchDetailResponse,
 } from "../types.js";
 import { get, set } from "../cache.js";
+import { log } from "../utils.js";
 
 const BASE_HEADERS = {
   "Content-Type": "application/json",
@@ -13,62 +14,15 @@ const BASE_HEADERS = {
   Referer: "https://www.ageofempires.com/",
 };
 
-const TIMEOUT_MS = 15_000;
-const MAX_RETRIES = 3;
-
-let queue: Promise<unknown> = Promise.resolve();
-
-async function jsonFetch<T>(url: string, body: unknown): Promise<T> {
-  await queue;
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (attempt > 0) {
-      const delay = Math.min(1000 * 2 ** attempt, 10_000) + Math.random() * 500;
-      await new Promise((r) => setTimeout(r, delay));
-    }
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: BASE_HEADERS,
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-
-      if (response.ok) {
-        const text = await response.text();
-        if (!text) {
-          throw new Error(`Empty response from ${url}`);
-        }
-        return JSON.parse(text) as T;
-      }
-
-      if (response.status === 429 && attempt < MAX_RETRIES) {
-        const retryAfter = response.headers.get("Retry-After");
-        const wait = retryAfter ? parseInt(retryAfter, 10) * 1000 : undefined;
-        console.warn(`429 on ${url}, retrying in ${wait ?? "..."}ms (attempt ${attempt + 1})`);
-        if (wait) await new Promise((r) => setTimeout(r, wait));
-        continue;
-      }
-
-      throw new Error(`HTTP ${response.status} ${response.statusText} — ${url}`);
-    } catch (err) {
-      if (attempt < MAX_RETRIES && err instanceof Error && err.name !== "AbortError") {
-        lastError = err;
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw lastError ?? new Error(`Request failed after ${MAX_RETRIES} retries`);
-}
-
-function serialFetch<T>(url: string, body: unknown): Promise<T> {
-  const promise = queue.then(() => jsonFetch<T>(url, body));
-  queue = promise.catch(() => {});
-  return promise;
+async function apiFetch<T>(url: string, body: unknown): Promise<T> {
+  log(`[api] POST ${url}`);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: BASE_HEADERS,
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} — ${url}`);
+  return (await res.json()) as T;
 }
 
 export async function getPlayer(
@@ -77,17 +31,9 @@ export async function getPlayer(
   const cached = get<LeaderboardResponse>(`player:${username}`);
   if (cached) return cached;
 
-  const data = await serialFetch<LeaderboardResponse>(
+  const data = await apiFetch<LeaderboardResponse>(
     "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
-    {
-      region: "7",
-      matchType: "3",
-      searchPlayer: username,
-      page: 1,
-      count: 1,
-      sortColumn: "rank",
-      sortDirection: "ASC",
-    },
+    { region: "7", matchType: "3", searchPlayer: username, page: 1, count: 1, sortColumn: "rank", sortDirection: "ASC" },
   );
 
   set(`player:${username}`, data);
@@ -98,17 +44,9 @@ export async function getTopPlayers(): Promise<LeaderboardResponse> {
   const cached = get<LeaderboardResponse>(`topPlayers`);
   if (cached) return cached;
 
-  const data = await serialFetch<LeaderboardResponse>(
+  const data = await apiFetch<LeaderboardResponse>(
     "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
-    {
-      region: "7",
-      matchType: "3",
-      searchPlayer: "",
-      page: 1,
-      count: 10,
-      sortColumn: "rank",
-      sortDirection: "ASC",
-    },
+    { region: "7", matchType: "3", searchPlayer: "", page: 1, count: 10, sortColumn: "rank", sortDirection: "ASC" },
   );
   set(`topPlayers`, data);
   return data;
@@ -122,19 +60,9 @@ export async function getMatches(
   const cached = get<MatchListResponse>(key);
   if (cached) return cached;
 
-  const data = await serialFetch<MatchListResponse>(
+  const data = await apiFetch<MatchListResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchList",
-    {
-      gamertag: "unknown user",
-      playerNumber: 0,
-      game: "age2",
-      profileId,
-      sortColumn: "dateTime",
-      sortDirection: "DESC",
-      page: 1,
-      recordCount: count,
-      matchType: "3",
-    },
+    { gamertag: "unknown", playerNumber: 0, game: "age2", profileId, sortColumn: "dateTime", sortDirection: "DESC", page: 1, recordCount: count, matchType: "3" },
   );
 
   set(key, data);
@@ -148,7 +76,7 @@ export async function getMatchDetail(
   const cached = get<MatchDetailResponse>(key);
   if (cached) return cached;
 
-  const data = await serialFetch<MatchDetailResponse>(
+  const data = await apiFetch<MatchDetailResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchDetail",
     { matchId },
   );
@@ -164,15 +92,9 @@ export async function getFullStats(
   const cached = get<FullStatsResponse>(key);
   if (cached) return cached;
 
-  const data = await serialFetch<FullStatsResponse>(
+  const data = await apiFetch<FullStatsResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetFullStats",
-    {
-      profileId: String(profileId),
-      gamertag: "unknown user",
-      playerNumber: 0,
-      gameId: 0,
-      matchType: "3",
-    },
+    { profileId: String(profileId), gamertag: "unknown", playerNumber: 0, gameId: 0, matchType: "3" },
   );
 
   set(key, data);

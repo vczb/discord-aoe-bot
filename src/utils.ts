@@ -1,5 +1,19 @@
 import "dotenv/config";
 
+const LOG_PREFIX = "[aoe-bot]";
+
+function timestamp(): string {
+  return new Date().toISOString();
+}
+
+export function log(...args: unknown[]) {
+  console.log(timestamp(), LOG_PREFIX, ...args);
+}
+
+export function logError(...args: unknown[]) {
+  console.error(timestamp(), LOG_PREFIX, "[ERROR]", ...args);
+}
+
 export async function DiscordRequest(
   endpoint: string,
   options: { method?: string; body?: unknown },
