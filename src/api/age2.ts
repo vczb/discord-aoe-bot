@@ -3,8 +3,8 @@ import {
   LeaderboardResponse,
   MatchListResponse,
   MatchDetailResponse,
-} from "./types.js";
-import { get, set } from "./cache.js";
+} from "../types.js";
+import { get, set } from "../cache.js";
 
 const BASE_HEADERS = {
   "Content-Type": "application/json",

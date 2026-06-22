@@ -11,7 +11,8 @@ import {
   getMatchDetail,
   getTopPlayers,
   getFullStats,
-} from "./api.js";
+} from "./api/age2.js";
+import { getGuild } from "./api/discord.js";
 
 interface InteractionData {
   name?: string;
@@ -71,7 +72,9 @@ app.post(
 
     const COMMAND_TIMEOUT_MS = 30_000;
     const timer = setTimeout(() => {
-      respond({ content: "The AoE API is taking too long. Please try again later." });
+      respond({
+        content: "The AoE API is taking too long. Please try again later.",
+      });
     }, COMMAND_TIMEOUT_MS);
 
     async function run() {
@@ -83,201 +86,235 @@ app.post(
     }
 
     async function handleCommand() {
-    if (data.name === "player") {
-      const username = data.options?.[0]?.value;
+      if (data.name === "player") {
+        const username = data.options?.[0]?.value;
 
-      if (!username) {
-        await respond({ content: "Please provide a username." });
-        return;
-      }
-
-      try {
-        const result = await getPlayer(username);
-
-        if (!result.items?.length) {
-          await respond({ content: `No player found for **${username}**` });
+        if (!username) {
+          await respond({ content: "Please provide a username." });
           return;
         }
 
-        const player = result.items[0];
-        await respond({
-          content:
-            `**${player.userName}** — Rank #${player.rank} (${player.elo} ELO)\n` +
-            `Wins: ${player.wins} | Losses: ${player.losses} | Win Rate: ${player.winPercent}%`,
-        });
-      } catch (err) {
-        console.error(err);
-        await respond({ content: "Error looking up player. Try again later." });
-      }
-      return;
-    }
+        try {
+          const result = await getPlayer(username);
 
-    if (data.name === "top10") {
-      try {
-        const result = await getTopPlayers();
-        console.log("Top players result:", result);
-        if (!result.items?.length) {
-          await respond({ content: "No players found" });
-          return;
-        }
+          if (!result.items?.length) {
+            await respond({ content: `No player found for **${username}**` });
+            return;
+          }
 
-        const header = "**Top 10 Players**\n\n";
-        let lines = result.items.slice(0, 10).map(
-          (player) =>
-            `#${player.rank} **${player.userName}** — ${player.elo} ELO (${player.wins}-${player.losses})`,
-        );
-        while (header.length + lines.join("\n").length + 3 > 2000) {
-          lines.pop();
-          lines[lines.length - 1] += "...";
-        }
-        await respond({ content: header + lines.join("\n") });
-      } catch (err) {
-        console.error(err);
-        await respond({
-          content: "Error fetching top players. Try again later.",
-        });
-      }
-      return;
-    }
-
-    if (data.name === "stats") {
-      const username = data.options?.[0]?.value;
-
-      if (!username) {
-        await respond({ content: "Please provide a username." });
-        return;
-      }
-
-      try {
-        const playerResult = await getPlayer(username);
-
-        if (!playerResult.items?.length) {
-          await respond({ content: `No player found for **${username}**` });
-          return;
-        }
-
-        const player = playerResult.items[0];
-        const stats = await getFullStats(player.rlUserId);
-        const cs = stats.careerStats;
-        const mp = stats.mpStatList;
-
-        await respond({
-          content:
-            `**${player.userName}** — Career Stats\n\n` +
-            `**Multiplayer** — ${mp.totalMatches} matches, ${mp.totalWins} wins (current streak: ${mp.currentWinStreak})\n\n` +
-            `**Units** — ${cs.unitsKilled.toLocaleString()} killed / ${cs.unitsLost.toLocaleString()} lost\n` +
-            `**Buildings** — ${cs.buildingsRaised.toLocaleString()} raised / ${cs.buildingsLost.toLocaleString()} lost\n` +
-            `**Castles Built:** ${cs.castlesBuilt} | **Wonders Built:** ${cs.wondersBuilt}\n` +
-            `**Farms Built:** ${cs.farmsBuilt.toLocaleString()} | **Trebs Built:** ${cs.trebsBuilt}\n` +
-            `**High Scores** — Total: ${cs.highScoreTotal.toLocaleString()} | Military: ${cs.highScoreMilitary.toLocaleString()} | Economy: ${cs.highScoreEconomy.toLocaleString()} | Tech: ${cs.highScoreTechnology.toLocaleString()}`,
-        });
-      } catch (err) {
-        console.error(err);
-        await respond({ content: "Error fetching stats. Try again later." });
-      }
-      return;
-    }
-
-    if (data.name === "lastmatch") {
-      const playerName = data.options?.[0]?.value;
-
-      if (!playerName) {
-        await respond({ content: "Please provide a player name." });
-        return;
-      }
-
-      try {
-        const playerResult = await getPlayer(playerName);
-
-        if (!playerResult.items?.length) {
-          await respond({ content: `No player found for **${playerName}**` });
-          return;
-        }
-
-        const player = playerResult.items[0];
-        const matches = await getMatches(player.rlUserId, 1);
-
-        if (!matches.matchList?.length) {
+          const player = result.items[0];
           await respond({
-            content: `No matches found for **${player.userName}**`,
+            content:
+              `**${player.userName}** — Rank #${player.rank} (${player.elo} ELO)\n` +
+              `Wins: ${player.wins} | Losses: ${player.losses} | Win Rate: ${player.winPercent}%`,
           });
+        } catch (err) {
+          console.error(err);
+          await respond({
+            content: "Error looking up player. Try again later.",
+          });
+        }
+        return;
+      }
+
+      if (data.name === "top10") {
+        try {
+          const result = await getTopPlayers();
+          console.log("Top players result:", result);
+          if (!result.items?.length) {
+            await respond({ content: "No players found" });
+            return;
+          }
+
+          const header = "**Top 10 Players**\n\n";
+          let lines = result.items
+            .slice(0, 10)
+            .map(
+              (player) =>
+                `#${player.rank} **${player.userName}** — ${player.elo} ELO (${player.wins}-${player.losses})`,
+            );
+          while (header.length + lines.join("\n").length + 3 > 2000) {
+            lines.pop();
+            lines[lines.length - 1] += "...";
+          }
+          await respond({ content: header + lines.join("\n") });
+        } catch (err) {
+          console.error(err);
+          await respond({
+            content: "Error fetching top players. Try again later.",
+          });
+        }
+        return;
+      }
+
+      if (data.name === "stats") {
+        const username = data.options?.[0]?.value;
+
+        if (!username) {
+          await respond({ content: "Please provide a username." });
           return;
         }
 
-        const match = matches.matchList[0];
-        const detail = await getMatchDetail(match.matchId);
-        const ms = detail.matchSummary;
-        const isWin = ms.winLoss === "Win";
-        const lengthMinutes = Math.floor(ms.matchLength / 60);
-        const lengthSeconds = ms.matchLength % 60;
-        const matchDate = new Date(ms.dateTime).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
+        try {
+          const playerResult = await getPlayer(username);
 
-        const teams = new Map<number, string[]>();
-        for (const p of detail.playerList) {
-          const entry = teams.get(p.team) || [];
-          entry.push(`${p.userName} (${p.civName}, ${p.elo ?? "?"} ELO)`);
-          teams.set(p.team, entry);
+          if (!playerResult.items?.length) {
+            await respond({ content: `No player found for **${username}**` });
+            return;
+          }
+
+          const player = playerResult.items[0];
+          const stats = await getFullStats(player.rlUserId);
+          const cs = stats.careerStats;
+          const mp = stats.mpStatList;
+
+          await respond({
+            content:
+              `**${player.userName}** — Career Stats\n\n` +
+              `**Multiplayer** — ${mp.totalMatches} matches, ${mp.totalWins} wins (current streak: ${mp.currentWinStreak})\n\n` +
+              `**Units** — ${cs.unitsKilled.toLocaleString()} killed / ${cs.unitsLost.toLocaleString()} lost\n` +
+              `**Buildings** — ${cs.buildingsRaised.toLocaleString()} raised / ${cs.buildingsLost.toLocaleString()} lost\n` +
+              `**Castles Built:** ${cs.castlesBuilt} | **Wonders Built:** ${cs.wondersBuilt}\n` +
+              `**Farms Built:** ${cs.farmsBuilt.toLocaleString()} | **Trebs Built:** ${cs.trebsBuilt}\n` +
+              `**High Scores** — Total: ${cs.highScoreTotal.toLocaleString()} | Military: ${cs.highScoreMilitary.toLocaleString()} | Economy: ${cs.highScoreEconomy.toLocaleString()} | Tech: ${cs.highScoreTechnology.toLocaleString()}`,
+          });
+        } catch (err) {
+          console.error(err);
+          await respond({ content: "Error fetching stats. Try again later." });
         }
-        const playersField = [...teams.entries()]
-          .sort(([a], [b]) => a - b)
-          .map(([team, members]) => `**Team ${team}**\n${members.join("\n")}`)
-          .join("\n\n");
-
-        await respond({
-          embeds: [
-            {
-              title: `Latest Match — ${player.userName}`,
-              color: isWin ? 0x57f287 : 0xed4245,
-              thumbnail: { url: player.avatarUrl },
-              fields: [
-                {
-                  name: "Result",
-                  value: ms.winLoss ?? match.winLoss,
-                  inline: true,
-                },
-                {
-                  name: "Match Length",
-                  value: `${lengthMinutes}:${lengthSeconds.toString().padStart(2, "0")}`,
-                  inline: true,
-                },
-                {
-                  name: "Civilization",
-                  value: ms.civilization ?? match.civilization,
-                  inline: true,
-                },
-                { name: "Map", value: ms.mapType, inline: true },
-                {
-                  name: "Players",
-                  value: String(ms.playerCount),
-                  inline: true,
-                },
-                { name: "Date", value: matchDate, inline: true },
-                { name: "Players Detail", value: playersField, inline: false },
-              ],
-              footer: { text: `Match ID: ${match.matchId}` },
-            },
-          ],
-        });
-      } catch (err) {
-        console.error(err);
-        await respond({
-          content: "Error fetching last match. Try again later.",
-        });
+        return;
       }
-      return;
-    }
 
-    console.error(`unknown command: ${data.name}`);
-    await respond({ content: `Unknown command: ${data.name}` });
-  }
+      if (data.name === "lastmatch") {
+        const playerName = data.options?.[0]?.value;
+
+        if (!playerName) {
+          await respond({ content: "Please provide a player name." });
+          return;
+        }
+
+        try {
+          const playerResult = await getPlayer(playerName);
+
+          if (!playerResult.items?.length) {
+            await respond({ content: `No player found for **${playerName}**` });
+            return;
+          }
+
+          const player = playerResult.items[0];
+          const matches = await getMatches(player.rlUserId, 1);
+
+          if (!matches.matchList?.length) {
+            await respond({
+              content: `No matches found for **${player.userName}**`,
+            });
+            return;
+          }
+
+          const match = matches.matchList[0];
+          const detail = await getMatchDetail(match.matchId);
+          const ms = detail.matchSummary;
+          const isWin = ms.winLoss === "Win";
+          const lengthMinutes = Math.floor(ms.matchLength / 60);
+          const lengthSeconds = ms.matchLength % 60;
+          const matchDate = new Date(ms.dateTime).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+
+          const teams = new Map<number, string[]>();
+          for (const p of detail.playerList) {
+            const entry = teams.get(p.team) || [];
+            entry.push(`${p.userName} (${p.civName}, ${p.elo ?? "?"} ELO)`);
+            teams.set(p.team, entry);
+          }
+          const playersField = [...teams.entries()]
+            .sort(([a], [b]) => a - b)
+            .map(([team, members]) => `**Team ${team}**\n${members.join("\n")}`)
+            .join("\n\n");
+
+          await respond({
+            embeds: [
+              {
+                title: `Latest Match — ${player.userName}`,
+                color: isWin ? 0x57f287 : 0xed4245,
+                thumbnail: { url: player.avatarUrl },
+                fields: [
+                  {
+                    name: "Result",
+                    value: ms.winLoss ?? match.winLoss,
+                    inline: true,
+                  },
+                  {
+                    name: "Match Length",
+                    value: `${lengthMinutes}:${lengthSeconds.toString().padStart(2, "0")}`,
+                    inline: true,
+                  },
+                  {
+                    name: "Civilization",
+                    value: ms.civilization ?? match.civilization,
+                    inline: true,
+                  },
+                  { name: "Map", value: ms.mapType, inline: true },
+                  {
+                    name: "Players",
+                    value: String(ms.playerCount),
+                    inline: true,
+                  },
+                  { name: "Date", value: matchDate, inline: true },
+                  {
+                    name: "Players Detail",
+                    value: playersField,
+                    inline: false,
+                  },
+                ],
+                footer: { text: `Match ID: ${match.matchId}` },
+              },
+            ],
+          });
+        } catch (err) {
+          console.error(err);
+          await respond({
+            content: "Error fetching last match. Try again later.",
+          });
+        }
+        return;
+      }
+
+      console.error(`unknown command: ${data.name}`);
+      await respond({ content: `Unknown command: ${data.name}` });
+    }
 
     run();
   },
 );
+
+function localhostOnly(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction,
+) {
+  const ip = req.ip || req.socket.remoteAddress || "";
+  if (
+    ip === "127.0.0.1" ||
+    ip === "::1" ||
+    ip === "::ffff:127.0.0.1" ||
+    req.hostname === "localhost"
+  ) {
+    return next();
+  }
+  res.status(403).json({ error: "Forbidden" });
+}
+
+app.get("/guild/:guildId", localhostOnly, async (req, res) => {
+  try {
+    const guild = await getGuild(req.params.guildId);
+    res.json(guild);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
 
 app.listen(PORT, () => {
   console.log("Listening on port", PORT);
