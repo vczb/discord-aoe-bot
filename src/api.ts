@@ -8,22 +8,23 @@ import { get, set } from "./cache.js";
 
 const BASE_HEADERS = {
   "Content-Type": "application/json",
-  "Accept": "application/json, text/javascript, */*; q=0.01",
-  "Origin": "https://www.ageofempires.com",
-  "Referer": "https://www.ageofempires.com/",
+  Accept: "application/json, text/javascript, */*; q=0.01",
+  Origin: "https://www.ageofempires.com",
+  Referer: "https://www.ageofempires.com/",
 };
+
+const TIMEOUT_MS = 15_000;
 
 async function jsonFetch<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
     headers: BASE_HEADERS,
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   });
 
   if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status} ${response.statusText} — ${url}`,
-    );
+    throw new Error(`HTTP ${response.status} ${response.statusText} — ${url}`);
   }
 
   const text = await response.text();
@@ -59,6 +60,7 @@ export async function getPlayer(
 
 export async function getTopPlayers(): Promise<LeaderboardResponse> {
   const cached = get<LeaderboardResponse>(`topPlayers`);
+  console.log("cached top players", cached);
   if (cached) return cached;
 
   const data = await jsonFetch<LeaderboardResponse>(
@@ -73,7 +75,7 @@ export async function getTopPlayers(): Promise<LeaderboardResponse> {
       sortDirection: "ASC",
     },
   );
-
+console.log("fetched top players", data);
   set(`topPlayers`, data);
   return data;
 }
