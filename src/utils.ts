@@ -20,7 +20,6 @@ export async function DiscordRequest(
   const res = await fetch(url, fetchOptions);
   if (!res.ok) {
     const data = await res.json();
-    console.log(res.status);
     throw new Error(JSON.stringify(data));
   }
   return res;

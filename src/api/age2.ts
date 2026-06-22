@@ -14,25 +14,61 @@ const BASE_HEADERS = {
 };
 
 const TIMEOUT_MS = 15_000;
+const MAX_RETRIES = 3;
+
+let queue: Promise<unknown> = Promise.resolve();
 
 async function jsonFetch<T>(url: string, body: unknown): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: BASE_HEADERS,
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
+  await queue;
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText} — ${url}`);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = Math.min(1000 * 2 ** attempt, 10_000) + Math.random() * 500;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: BASE_HEADERS,
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        if (!text) {
+          throw new Error(`Empty response from ${url}`);
+        }
+        return JSON.parse(text) as T;
+      }
+
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = response.headers.get("Retry-After");
+        const wait = retryAfter ? parseInt(retryAfter, 10) * 1000 : undefined;
+        console.warn(`429 on ${url}, retrying in ${wait ?? "..."}ms (attempt ${attempt + 1})`);
+        if (wait) await new Promise((r) => setTimeout(r, wait));
+        continue;
+      }
+
+      throw new Error(`HTTP ${response.status} ${response.statusText} — ${url}`);
+    } catch (err) {
+      if (attempt < MAX_RETRIES && err instanceof Error && err.name !== "AbortError") {
+        lastError = err;
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const text = await response.text();
-  if (!text) {
-    throw new Error(`Empty response from ${url}`);
-  }
+  throw lastError ?? new Error(`Request failed after ${MAX_RETRIES} retries`);
+}
 
-  return JSON.parse(text) as T;
+function serialFetch<T>(url: string, body: unknown): Promise<T> {
+  const promise = queue.then(() => jsonFetch<T>(url, body));
+  queue = promise.catch(() => {});
+  return promise;
 }
 
 export async function getPlayer(
@@ -41,7 +77,7 @@ export async function getPlayer(
   const cached = get<LeaderboardResponse>(`player:${username}`);
   if (cached) return cached;
 
-  const data = await jsonFetch<LeaderboardResponse>(
+  const data = await serialFetch<LeaderboardResponse>(
     "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
     {
       region: "7",
@@ -60,10 +96,9 @@ export async function getPlayer(
 
 export async function getTopPlayers(): Promise<LeaderboardResponse> {
   const cached = get<LeaderboardResponse>(`topPlayers`);
-  console.log("cached top players", cached);
   if (cached) return cached;
 
-  const data = await jsonFetch<LeaderboardResponse>(
+  const data = await serialFetch<LeaderboardResponse>(
     "https://api.ageofempires.com/api/v2/ageii/Leaderboard",
     {
       region: "7",
@@ -75,7 +110,6 @@ export async function getTopPlayers(): Promise<LeaderboardResponse> {
       sortDirection: "ASC",
     },
   );
-console.log("fetched top players", data);
   set(`topPlayers`, data);
   return data;
 }
@@ -88,7 +122,7 @@ export async function getMatches(
   const cached = get<MatchListResponse>(key);
   if (cached) return cached;
 
-  const data = await jsonFetch<MatchListResponse>(
+  const data = await serialFetch<MatchListResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchList",
     {
       gamertag: "unknown user",
@@ -114,7 +148,7 @@ export async function getMatchDetail(
   const cached = get<MatchDetailResponse>(key);
   if (cached) return cached;
 
-  const data = await jsonFetch<MatchDetailResponse>(
+  const data = await serialFetch<MatchDetailResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetMatchDetail",
     { matchId },
   );
@@ -130,7 +164,7 @@ export async function getFullStats(
   const cached = get<FullStatsResponse>(key);
   if (cached) return cached;
 
-  const data = await jsonFetch<FullStatsResponse>(
+  const data = await serialFetch<FullStatsResponse>(
     "https://api.ageofempires.com/api/GameStats/AgeII/GetFullStats",
     {
       profileId: String(profileId),
