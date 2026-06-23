@@ -1,3 +1,5 @@
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and commit guidelines.
+
 ## 🛠️ Phase 1: MVP & Core Infrastructure
 
 - [x] Create `/player [player_id]` command to fetch profile data, Elo, and win rates from AoE2Insights.
