@@ -21,9 +21,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and commit guideli
 ## 🚀 Phase 2: Engagement & Game Intelligence
 
 - [ ] Implement automated match feed processing via background workers (Push architecture).
-- [ ] Implement tactical commands (e.g., `/counter [civ]`) consuming data points from `aoestats.io`.
-- [ ] Build `/build [civilization]` command using a clean internal dataset to display static Build Order guides.
+- [ ] Implement tactical commands (e.g., `/counter [civ]`)
+- [ ] Implement tactical commands (e.g., `/hint [civ]`)
+- [ ] Build `/build [choice: {fast castle, MA rush, Archer}]` command using a clean internal dataset to display static Build Order guides.
 - [ ] Implement administrative Community Management tools (TBD—e.g., automated role assignment based on Elo thresholds like `@Elo 1400+`).
+- [ ] Build a tool for organizing tournaments with members
 
 ---
 
