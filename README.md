@@ -12,7 +12,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and commit guideli
 - [x] Add in-memory cache layer (`node-cache`) to protect external API limits.
 - [ ] Implement Relational Database layer (PostgreSQL DDL schema setup).
 - [ ] Restructure codebase using Object-Oriented Programming (OOP) and Data Transfer Objects (DTOs) to sanitize API payloads before processing.
-- [ ] Implement Discord Gateway Events (`guildCreate` / `guildDelete`) to handle automated server profile registration in the database.
+- [x] Implement Discord Gateway Events (`guildCreate` / `guildDelete`) to handle automated server profile registration in the database.
 - [ ] Implement `/leaderboard` command to generate a server-wide ranking based on the linked members in that specific guild.
 <!-- * [ ] Create a channel-binding command (e.g., `/setup-leaderboard`) to designate a sticky text channel where the server leaderboard updates automatically every 24 hours. -->
 
