@@ -1,6 +1,6 @@
-import { GuildResponse } from "../types.js";
+import { Guild } from "discord.js";
 
-export async function getGuild(guildId: string): Promise<GuildResponse> {
+export async function getGuild(guildId: string): Promise<Guild> {
   const response = await fetch(
     `https://discord.com/api/v10/guilds/${guildId}`,
     {

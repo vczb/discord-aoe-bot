@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, Message } from "discord.js";
+import { guildController } from "./controllers/guilds.js";
 
 export const client = new Client({
   intents: [
@@ -12,12 +13,12 @@ client.on("ready", () => {
   console.log(`Bot successfully logged in! Ready to receive events.`);
 });
 
-client.on("guildCreate", (guild: any) => {
-  console.log(`✅ NEW GUILD DETECTED: ${guild.name} (${guild.id})`);
+client.on("guildCreate", async (guild: any) => {
+  await guildController.onGuildCreate(guild);
 });
 
-client.on("guildDelete", (guild: any) => {
-  console.log(`✅ DELETE GUILD DETECTED: ${guild.name} (${guild.id})`);
+client.on("guildDelete", async (guild: any) => {
+  await guildController.onGuildDelete(guild.id);
 });
 
 client.on("guildMemberAdd", (member: any) => {
@@ -31,4 +32,3 @@ client.on("messageCreate", async (message: Message) => {
     message.reply("Pong!");
   }
 });
-

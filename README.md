@@ -5,13 +5,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and commit guideli
 - [x] Create `/player [player_id]` command to fetch profile data, Elo, and win rates from AoE2Insights.
 - [x] Create `/lastmatch [player_id]` command using AoE2Insights/Official API to display a rich embed summary of the latest played game.
 - [x] Create `/top10` command to show Top 10 Leaderboard
-- [ ] Implement account linking via `/link [platform] [id]`.
-      Multi-account handling: Users can run `/link` multiple times to bind different IDs.
-      The bot will prompt the user to set one as "Primary" via Discord Button
-      components or index them array-style for active commands.
+- [ ] Implement `/link` command to link Discord members to a player
 - [x] Add in-memory cache layer (`node-cache`) to protect external API limits.
-- [ ] Implement Relational Database layer (PostgreSQL DDL schema setup).
-- [ ] Restructure codebase using Object-Oriented Programming (OOP) and Data Transfer Objects (DTOs) to sanitize API payloads before processing.
+- [x] Implement Relational Database layer (PostgreSQL DDL schema setup).
+  - [x] Create guilds table
+  - [ ] Create members table
+  - [ ] Create players table
+  - [ ] Create match table (table name TBD)
+  - [ ] Create correct relationships
+  <!-- - [ ] Restructure codebase using Object-Oriented Programming (OOP) and Data Transfer Objects (DTOs) to sanitize API payloads before processing. -->
+
 - [x] Implement Discord Gateway Events (`guildCreate` / `guildDelete`) to handle automated server profile registration in the database.
 - [ ] Implement `/leaderboard` command to generate a server-wide ranking based on the linked members in that specific guild.
 <!-- * [ ] Create a channel-binding command (e.g., `/setup-leaderboard`) to designate a sticky text channel where the server leaderboard updates automatically every 24 hours. -->
