@@ -4,50 +4,103 @@ import type {
   FullStatsResponse,
 } from "../types.js";
 
-export function formatPlayerResponse(
-  result: LeaderboardResponse,
-): string {
+export function formatPlayerResponse(result: LeaderboardResponse): object {
   const player = result.items[0];
-  return (
-    `**${player.userName}** — Rank #${player.rank} (${player.elo} ELO)\n` +
-    `Wins: ${player.wins} | Losses: ${player.losses} | Win Rate: ${player.winPercent}%`
-  );
+
+  return {
+    embeds: [
+      {
+        title: player.userName,
+        color: 0x5865f2,
+        ...(player.avatarUrl ? { thumbnail: { url: player.avatarUrl } } : {}),
+        fields: [
+          { name: "Rank", value: `#${player.rank}`, inline: true },
+          { name: "ELO", value: String(player.elo), inline: true },
+          {
+            name: "Win Rate",
+            value: `${player.winPercent}%`,
+            inline: true,
+          },
+          { name: "Wins", value: String(player.wins), inline: true },
+          { name: "Losses", value: String(player.losses), inline: true },
+        ],
+      },
+    ],
+  };
 }
 
-export function formatTop10Response(
-  result: LeaderboardResponse,
-): string {
-  const header = "**Top 10 Players**\n\n";
-  let lines = result.items
-    .slice(0, 10)
-    .map(
-      (player) =>
-        `#${player.rank} **${player.userName}** — ${player.elo} ELO (${player.wins}-${player.losses})`,
-    );
-  while (header.length + lines.join("\n").length + 3 > 2000) {
-    lines.pop();
-    if (lines.length > 0) {
-      lines[lines.length - 1] += "...";
-    }
-  }
-  return header + lines.join("\n");
+export function formatTop10Response(result: LeaderboardResponse): object {
+  return {
+    embeds: [
+      {
+        title: "🏆 Top 10 Players",
+        color: 0xf1c40f,
+        description: result.items
+          .slice(0, 10)
+          .map(
+            (player) =>
+              `**#${player.rank}** ${player.userName} • ${player.elo} ELO (${player.wins}-${player.losses})`,
+          )
+          .join("\n"),
+      },
+    ],
+  };
 }
 
 export function formatStatsResponse(
   playerName: string,
   stats: FullStatsResponse,
-): string {
+): object {
   const cs = stats.careerStats;
   const mp = stats.mpStatList;
-  return (
-    `**${playerName}** — Career Stats\n\n` +
-    `**Multiplayer** — ${mp.totalMatches} matches, ${mp.totalWins} wins (current streak: ${mp.currentWinStreak})\n\n` +
-    `**Units** — ${cs.unitsKilled.toLocaleString()} killed / ${cs.unitsLost.toLocaleString()} lost\n` +
-    `**Buildings** — ${cs.buildingsRaised.toLocaleString()} raised / ${cs.buildingsLost.toLocaleString()} lost\n` +
-    `**Castles Built:** ${cs.castlesBuilt} | **Wonders Built:** ${cs.wondersBuilt}\n` +
-    `**Farms Built:** ${cs.farmsBuilt.toLocaleString()} | **Trebs Built:** ${cs.trebsBuilt}\n` +
-    `**High Scores** — Total: ${cs.highScoreTotal.toLocaleString()} | Military: ${cs.highScoreMilitary.toLocaleString()} | Economy: ${cs.highScoreEconomy.toLocaleString()} | Tech: ${cs.highScoreTechnology.toLocaleString()}`
-  );
+
+  return {
+    embeds: [
+      {
+        title: `${playerName} — Career Stats`,
+        color: 0x3498db,
+        fields: [
+          {
+            name: "Multiplayer",
+            value:
+              `${mp.totalMatches} matches\n` +
+              `${mp.totalWins} wins\n` +
+              `Current streak: ${mp.currentWinStreak}`,
+          },
+          {
+            name: "Units",
+            value:
+              `${cs.unitsKilled.toLocaleString()} killed\n` +
+              `${cs.unitsLost.toLocaleString()} lost`,
+            inline: true,
+          },
+          {
+            name: "Buildings",
+            value:
+              `${cs.buildingsRaised.toLocaleString()} raised\n` +
+              `${cs.buildingsLost.toLocaleString()} lost`,
+            inline: true,
+          },
+          {
+            name: "Economy",
+            value:
+              `Castles: ${cs.castlesBuilt}\n` +
+              `Wonders: ${cs.wondersBuilt}\n` +
+              `Farms: ${cs.farmsBuilt.toLocaleString()}\n` +
+              `Trebs: ${cs.trebsBuilt}`,
+          },
+          {
+            name: "High Scores",
+            value:
+              `Total: ${cs.highScoreTotal.toLocaleString()}\n` +
+              `Military: ${cs.highScoreMilitary.toLocaleString()}\n` +
+              `Economy: ${cs.highScoreEconomy.toLocaleString()}\n` +
+              `Tech: ${cs.highScoreTechnology.toLocaleString()}`,
+          },
+        ],
+      },
+    ],
+  };
 }
 
 export function formatLastMatchResponse(

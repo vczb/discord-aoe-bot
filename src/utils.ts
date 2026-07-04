@@ -1,6 +1,6 @@
 import "dotenv/config";
 
-const LOG_PREFIX = "[aoe-bot]";
+const LOG_PREFIX = "[scout-bot]";
 
 function timestamp(): string {
   return new Date().toISOString();
@@ -13,6 +13,7 @@ export function log(...args: unknown[]) {
 export function logError(...args: unknown[]) {
   console.error(timestamp(), LOG_PREFIX, "[ERROR]", ...args);
 }
+export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function DiscordRequest(
   endpoint: string,
