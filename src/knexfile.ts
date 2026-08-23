@@ -9,7 +9,7 @@ export default {
       database: "aoeii",
     },
     migrations: {
-      directory: "./migrations",
+      directory: "./database/migrations",
     },
   },
 };

@@ -14,7 +14,7 @@
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
     "prestart": "npm run build",
-    "migrate": "knex migrate:latest"
+    "migrate": "knex migrate:latest --knexfile ./src/knexfile.ts"
   },
   "author": "Shay DeWael",
   "license": "MIT",
