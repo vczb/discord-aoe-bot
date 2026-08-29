@@ -1,3 +1,10 @@
+## setup
+
+```
+npm install
+npm run migrate
+```
+
 ## Running the project
 
 ```bash
@@ -26,12 +33,12 @@ npm run register
 
 This project follows [Conventional Commits](https://www.conventionalcommits.org/).
 
-| Prefix       | Usage                                              |
-|--------------|----------------------------------------------------|
-| `feat:`      | new feature visible to users                       |
-| `fix:`       | bug fix                                            |
-| `refactor:`  | internal code changes without behavioral change    |
-| `docs:`      | documentation only (README, CONTRIBUTING, etc.)    |
-| `chore:`     | maintenance, tooling, dependencies                 |
+| Prefix      | Usage                                           |
+| ----------- | ----------------------------------------------- |
+| `feat:`     | new feature visible to users                    |
+| `fix:`      | bug fix                                         |
+| `refactor:` | internal code changes without behavioral change |
+| `docs:`     | documentation only (README, CONTRIBUTING, etc.) |
+| `chore:`    | maintenance, tooling, dependencies              |
 
 If a commit adds a feature and includes refactoring, use `feat:`. For pure code cleanup with no new functionality, prefer `refactor:`.
